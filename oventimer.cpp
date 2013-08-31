@@ -1,6 +1,7 @@
 #include <cmath>
 #include <QFont>
 #include <QtGlobal>
+#include <QPolygon>
 
 #include "oventimer.h"
 
@@ -51,7 +52,7 @@ void OvenTimer::setDuration(int secs)
     update();
 }
 
-int OvenTimer::duration()
+int OvenTimer::duration() const
 {
     int secs = QDateTime::currentDateTime().secsTo(finishTime);
     if(secs < 0)
@@ -65,6 +66,74 @@ void OvenTimer::mousePressEvent(QMouseEvent *event)
     double theta = std::atan2(-point.x(), -point.y()) * 100.0 / M_PI;
     setDuration(duration() + int(theta / DegreesPerSecond));
     update();
+}
+
+void OvenTimer::paintEvent(QPaintEvent *)
+{
+    QPainter painter(this);
+    painter.setRenderHint(QPainter::Antialiasing, true);
+
+    int side = qMin(width(), height());
+    painter.setViewport((width() - side) / 2, (height() - side) / 2, side, side);
+    painter.setWindow(-50, -50, 100, 100);
+
+    draw(&painter);
+}
+
+void OvenTimer::draw(QPainter *painter)
+{
+    static const int triangle[3][2] = {{-2, -49}, {+2, -49}, {0, -47}};
+    QPen thickPen(palette().foreground(), 1.5);
+    QPen thinPen(palette().foreground(), 0.5);
+    QColor niceBlue(150, 150, 200);
+
+    painter->setPen(thinPen);
+    painter->setBrush(palette().foreground());
+    painter->drawPolygon(QPolygon(3, &triangle[0][0]));
+
+    QConicalGradient coneGradient(0, 0, -90.0);
+    coneGradient.setColorAt(0.0, Qt::darkGray);
+    coneGradient.setColorAt(0.2, niceBlue);
+    coneGradient.setColorAt(0.5, Qt::white);
+    coneGradient.setColorAt(1.0, Qt::darkGray);
+    painter->setBrush(coneGradient);
+    painter->drawEllipse(-46, -46, 92, 92);
+
+    QRadialGradient haloGradient(0, 0, 20, 0, 0);
+    haloGradient.setColorAt(0.0, Qt::lightGray);
+    haloGradient.setColorAt(0.8, Qt::darkGray);
+    haloGradient.setColorAt(0.9, Qt::white);
+    haloGradient.setColorAt(1.0, Qt::black);
+    painter->setPen(Qt::NoPen);
+    painter->setBrush(haloGradient);
+    painter->drawEllipse(-20, -20, 40, 40);
+
+    QLinearGradient knobGradient(-7, -25, 7, -25);
+    knobGradient.setColorAt(0.0, Qt::black);
+    knobGradient.setColorAt(0.2, niceBlue);
+    knobGradient.setColorAt(0.3, Qt::lightGray);
+    knobGradient.setColorAt(0.8, Qt::white);
+    knobGradient.setColorAt(1.0, Qt::black);
+    painter->rotate(duration() * DegreesPerSecond);
+    painter->setBrush(knobGradient);
+    painter->setPen(thinPen);
+    painter->drawRoundRect(-7, -25, 14, 50, 99, 49);
+
+    for(int i = 0; i <= MaxMinutes; ++i)
+    {
+        if(i % 5 == 0)
+        {
+            painter->setPen(thickPen);
+            painter->drawLine(0, -41, 0, -44);
+            painter->drawText(-15, -41, 30, 30, Qt::AlignHCenter | Qt::AlignTop, QString::number(i));
+        }
+        else
+        {
+            painter->setPen(thinPen);
+            painter->drawLine(0, -42, 0, -44);
+        }
+        painter->rotate(-DegreesPerMinute);
+    }
 }
 
 OvenTimer::~OvenTimer()

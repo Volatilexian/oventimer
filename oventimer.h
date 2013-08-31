@@ -6,6 +6,7 @@
 #include <QTimer>
 #include <QPaintEvent>
 #include <QMouseEvent>
+#include <QPainter>
 
 class OvenTimer : public QWidget
 {
